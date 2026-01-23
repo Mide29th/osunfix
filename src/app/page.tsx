@@ -84,7 +84,15 @@ export default function Home() {
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground pt-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-400">
                   <div className="flex -space-x-2">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className={`w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold bg-primary/${10 + i * 10}`}>U{i}</div>
+                      <div key={i} className="relative w-8 h-8 rounded-full border-2 border-background overflow-hidden">
+                        <Image
+                          src={`/avatars/${i}.png`}
+                          alt={`Community member ${i}`}
+                          fill
+                          sizes="32px"
+                          className="object-cover"
+                        />
+                      </div>
                     ))}
                   </div>
                   <div>Trusted by 5,000+ residents</div>
