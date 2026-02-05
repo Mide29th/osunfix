@@ -54,5 +54,24 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Protected Routes Logic
+    const isLoginPage = request.nextUrl.pathname === '/login'
+    const isAdminPath = request.nextUrl.pathname.startsWith('/admin')
+
+    if (!user && isAdminPath) {
+        // Redirect to login if user is not authenticated and trying to access admin
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        url.searchParams.set('redirectTo', request.nextUrl.pathname)
+        return NextResponse.redirect(url)
+    }
+
+    if (user && isLoginPage) {
+        // Redirect to admin if user is already authenticated and trying to access login
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return NextResponse.redirect(url)
+    }
+
     return supabaseResponse
 }

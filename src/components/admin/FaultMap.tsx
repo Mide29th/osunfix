@@ -19,6 +19,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 export default function FaultMap() {
     const [isMounted, setIsMounted] = useState(false);
     const [faults, setFaults] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setIsMounted(true);
@@ -31,29 +32,32 @@ export default function FaultMap() {
                     Assets (
                         latitude,
                         longitude,
-                        location
+                        location,
+                        type
                     )
                 `);
 
             if (data) {
-                // Filter out reports where asset might have been deleted or missing coords
+                // Filter out reports without coordinates
                 const validFaults = data.filter(f => f.Assets?.latitude && f.Assets?.longitude);
                 setFaults(validFaults);
             }
+            setLoading(false);
         };
+
         fetchFaults();
     }, []);
 
-    if (!isMounted) {
+    if (!isMounted || loading) {
         return (
-            <div className="w-full h-[400px] bg-neutral-100 rounded-xl flex items-center justify-center text-neutral-400 animate-pulse">
-                Loading Map...
+            <div className="w-full h-full bg-neutral-100 rounded-xl flex items-center justify-center text-neutral-400 animate-pulse">
+                Loading Map Data...
             </div>
         );
     }
 
     return (
-        <div className="w-full h-[400px] rounded-xl overflow-hidden shadow-lg border border-border z-0 relative">
+        <div className="w-full h-full rounded-xl overflow-hidden shadow-sm border border-border z-0 relative">
             <MapContainer
                 center={[7.6, 4.5]}
                 zoom={9}
@@ -70,11 +74,11 @@ export default function FaultMap() {
                         position={[fault.Assets.latitude, fault.Assets.longitude]}
                     >
                         <Popup>
-                            <div className="p-2">
-                                <h3 className="font-bold text-sm">{fault.fault_type} - {fault.Assets.location}</h3>
-                                <div className="text-xs text-gray-500 mb-1">Asset: {fault.asset_id}</div>
-                                <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${fault.status === 'Critical' ? 'bg-red-100 text-red-700' :
-                                        fault.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                            <div className="p-2 font-sans">
+                                <h3 className="font-bold text-sm">{fault.fault_type}</h3>
+                                <p className="text-xs text-muted-foreground">{fault.Assets.location}</p>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full mt-2 inline-block font-bold uppercase ${fault.status === 'Critical' ? 'bg-red-100 text-red-700' :
+                                        fault.status === 'Resolved' ? 'bg-green-100 text-green-700' :
                                             'bg-yellow-100 text-yellow-700'
                                     }`}>
                                     {fault.status}
