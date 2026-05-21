@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TreePine, Hammer, ArrowRight, ShieldCheck, Map, Activity } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TreePine, Hammer, ArrowRight, Map, Activity, TrendingUp, Sparkles, BookOpen, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -17,15 +17,14 @@ export default function Home() {
             <Link className="text-sm font-medium hover:text-primary transition-colors hover:bg-primary/5 px-3 py-2 rounded-md" href="/map">
               Live Map
             </Link>
-            <Link className="text-sm font-medium hover:text-primary transition-colors hover:bg-primary/5 px-3 py-2 rounded-md" href="/impact">
-              Impact Report
+            <Link className="text-sm font-medium hover:text-primary transition-colors hover:bg-primary/5 px-3 py-2 rounded-md" href="/civic-hub">
+              Civic Hub
             </Link>
-            <Link className="text-sm font-medium hover:text-primary transition-colors hover:bg-primary/5 px-3 py-2 rounded-md" href="/community">
-              Community
+            <Link href="/report">
+              <Button variant="default" size="sm" className="ml-2 font-semibold shadow-sm">
+                Report an Issue
+              </Button>
             </Link>
-            <Button variant="default" size="sm" className="ml-2 font-semibold shadow-sm">
-              Get App
-            </Button>
           </nav>
           <Button variant="ghost" size="icon" className="md:hidden ml-auto">
             <span className="sr-only">Menu</span>
@@ -201,9 +200,66 @@ export default function Home() {
             </div>
 
             <div className="mt-16 flex justify-center">
-              <Button variant="outline" size="lg" className="rounded-full px-8 border-primary/20 text-primary hover:bg-primary/5">
-                See All Features
-              </Button>
+              <Link href="/civic-hub">
+                <Button variant="outline" size="lg" className="rounded-full px-8 border-primary/20 text-primary hover:bg-primary/5">
+                  Explore Civic Hub <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Civic Hub Feature Highlight */}
+        <section className="w-full py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5 border-y border-border">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid gap-8 lg:grid-cols-2 items-center">
+              <div className="space-y-5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary w-fit">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Powered by Gemini AI
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  Civic & Accountability Hub
+                </h2>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Track every naira of public spending. Audit government projects with AI, learn your civic rights through interactive flashcards, and get instant answers from Imole AI — your Osun State civic guide.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Link href="/civic-hub">
+                    <Button size="lg" className="h-12 px-8 shadow-lg w-full sm:w-auto">
+                      Open Civic Hub <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/civic-hub">
+                    <Button size="lg" variant="outline" className="h-12 px-8 border-primary/20 w-full sm:w-auto">
+                      Chat with Imole AI
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-2xl border border-border shadow-sm p-5 space-y-2">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="font-bold text-sm">Project Tracker</p>
+                  <p className="text-xs text-muted-foreground">Live progress on constituency projects with AI accountability scores</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-border shadow-sm p-5 space-y-2">
+                  <div className="h-10 w-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+                    <BookOpen className="h-5 w-5 text-secondary" />
+                  </div>
+                  <p className="font-bold text-sm">Civic Flashcards</p>
+                  <p className="text-xs text-muted-foreground">3D flip cards on your rights, budgets, and how government works</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-border shadow-sm p-5 space-y-2 col-span-2">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <MessageCircle className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <p className="font-bold text-sm">Imole AI Chat</p>
+                  <p className="text-xs text-muted-foreground">Ask anything about Osun State governance, your rights, or how to report corruption — in plain English or Yoruba</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -219,14 +275,16 @@ export default function Home() {
 
           <div className="container relative z-10 mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-6">
-              Ready to fix Osun State?
+              See something broken? Report it now.
             </h2>
             <p className="mx-auto max-w-[600px] text-primary-foreground/80 md:text-xl mb-8">
-              Join the community of active citizens. Download the app today and report your first issue.
+              Every report you submit goes directly to the state maintenance team. It takes under a minute and makes a real difference.
             </p>
-            <Button size="lg" variant="secondary" className="font-bold text-secondary-foreground shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
-              Download for Android <ShieldCheck className="ml-2 h-4 w-4" />
-            </Button>
+            <Link href="/report">
+              <Button size="lg" variant="secondary" className="font-bold text-secondary-foreground shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1">
+                Report an Issue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
