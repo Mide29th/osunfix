@@ -1,20 +1,35 @@
-import { Users } from 'lucide-react';
+'use client';
+
+import { useAdminData } from '@/hooks/useAdminData';
+import { Loader2, LogOut } from 'lucide-react';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import ArtisanRouting from '@/components/admin/ArtisanRouting';
 
 export default function RoutingPage() {
+    const { user, loading, faults } = useAdminData();
+    const router = useRouter();
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    if (!user) return null;
+
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">Artisan Routing & Dispatch</h1>
-                <p className="text-sm text-muted-foreground mt-1">Connect vetted workers to priority infrastructure faults</p>
-            </div>
-            <div className="bg-white p-12 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4 text-neutral-400">
-                    <Users size={32} />
+            <header className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-border mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">Artisan Routing</h1>
+                    <p className="text-sm text-muted-foreground">Admin logged in as {user.email}</p>
                 </div>
-                <h2 className="text-lg font-bold">Routing System Active</h2>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto mt-2">
-                    The dispatch algorithm is currently prioritizing critical road failures in Osogbo.
-                </p>
+                <button onClick={async () => { await signOut(auth); router.push('/login'); }} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors font-medium">
+                    <LogOut size={18} /> Sign Out
+                </button>
+            </header>
+
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-border">
+                <div className="h-[600px]">
+                    <ArtisanRouting faults={faults} />
+                </div>
             </div>
         </div>
     );
