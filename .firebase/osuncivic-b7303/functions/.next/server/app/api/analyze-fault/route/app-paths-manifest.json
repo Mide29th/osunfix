@@ -1,0 +1,3 @@
+{
+  "/api/analyze-fault/route": "app/api/analyze-fault/route.js"
+}

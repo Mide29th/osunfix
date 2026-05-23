@@ -101,7 +101,7 @@ export default function Home() {
               {/* Hero Image / Graphic Placeholder */}
               <div className="mx-auto w-full max-w-[500px] lg:max-w-none relative animate-in fade-in zoom-in duration-1000 delay-200">
                 <div className="relative aspect-square md:aspect-video lg:aspect-square bg-gradient-to-tr from-primary/10 to-secondary/10 rounded-3xl border border-white/20 shadow-2xl backdrop-blur-sm overflow-hidden flex items-center justify-center group hover:shadow-primary/20 transition-all duration-500">
-                  <div className="absolute inset-0 bg-[url('/placeholder-map.png')] opacity-20 bg-cover bg-center" />
+                  <div className="absolute inset-0 bg-primary/10 opacity-20" />
 
                   {/* Floating Cards UI Mockup */}
                   <div className="relative z-10 w-3/4 space-y-4">
@@ -297,6 +297,9 @@ export default function Home() {
             </Link>
             <Link className="text-xs hover:underline underline-offset-4 text-muted-foreground" href="#">
               Privacy
+            </Link>
+            <Link className="text-xs hover:underline underline-offset-4 text-muted-foreground" href="/login">
+              Admin Login
             </Link>
             <Link className="text-xs hover:underline underline-offset-4 text-muted-foreground" href="#">
               Contact
