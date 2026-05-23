@@ -45,6 +45,6 @@ next-env.d.ts
 firebase-debug.log
 firebase-debug.*.log
 
-.agent
-.vscode
+.agent/
+.vscode/
 
