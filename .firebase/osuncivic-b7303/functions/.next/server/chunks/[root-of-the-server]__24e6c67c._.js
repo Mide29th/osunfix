@@ -4,7 +4,7 @@ a public accountability platform for Osun State, Nigeria. Your role is to:
 - Explain constituency projects, budgets, and government accountability in simple, clear language
 - Guide citizens on how to report issues, track projects, and exercise their rights
 - Provide factual information about Osun State governance
-Always be helpful, encouraging, and non-partisan. Use simple English mixed with Yoruba greetings where appropriate (e.g. "E kaabo" for welcome, "E se" for thank you). Keep responses concise (under 200 words unless asked to elaborate).`;async function E(e){try{let t=await e.json(),{mode:r,message:n,context:a}=t;if(!process.env.GEMINI_API_KEY)return R.NextResponse.json({error:"Gemini API key not configured."},{status:500});let o=w.getGenerativeModel({model:"gemini-2.5-flash"});if("chat"===r){let e=o.startChat({history:a?.history||[],generationConfig:{maxOutputTokens:512,temperature:.7}}),t=await e.sendMessage(`${y}
+Always be helpful, encouraging, and non-partisan. Use simple English mixed with Yoruba greetings where appropriate (e.g. "E kaabo" for welcome, "E se" for thank you). Keep responses concise (under 200 words unless asked to elaborate).`;async function E(e){try{let t=await e.json(),{mode:r,message:n,context:a}=t;if(!process.env.GEMINI_API_KEY)return R.NextResponse.json({error:"Gemini API key not configured."},{status:500});let o=w.getGenerativeModel({model:"gemini-1.5-flash"});if("chat"===r){let e=o.startChat({history:a?.history||[],generationConfig:{maxOutputTokens:512,temperature:.7}}),t=await e.sendMessage(`${y}
 
 Citizen question: ${n}`);return R.NextResponse.json({reply:t.response.text()})}if("quiz"===r){let{question:e,correctAnswer:r,userAnswer:n}=t,a=`You are a kind civic education tutor. Grade the following quiz answer:
 

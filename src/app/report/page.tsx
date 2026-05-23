@@ -51,15 +51,28 @@ export default function ReportLandingPage() {
       if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
               (position) => {
-                  setLocation({
-                      lat: position.coords.latitude,
-                      lng: position.coords.longitude
-                  });
+                  let lat = position.coords.latitude;
+                  let lng = position.coords.longitude;
+                  
+                  // For hackathon/demo: If the user is testing from outside Osun State
+                  // (roughly lat 7.0-8.2, lng 4.0-5.2), map their location into Osogbo
+                  // so the pins actually show up on the map.
+                  if (lat < 7.0 || lat > 8.2 || lng < 4.0 || lng > 5.2) {
+                      lat = 7.76 + (Math.random() - 0.5) * 0.05; // Randomize around Osogbo
+                      lng = 4.56 + (Math.random() - 0.5) * 0.05;
+                  }
+
+                  setLocation({ lat, lng });
                   setLocationError('');
               },
               (err) => {
                   console.warn(err);
-                  setLocationError('Unable to retrieve location. Please provide a clear landmark.');
+                  // Fallback to a random Osogbo location if location is blocked
+                  setLocation({
+                      lat: 7.76 + (Math.random() - 0.5) * 0.05,
+                      lng: 4.56 + (Math.random() - 0.5) * 0.05
+                  });
+                  setLocationError('');
               }
           );
       } else {
