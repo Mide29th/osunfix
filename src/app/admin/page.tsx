@@ -1,59 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useAdminData } from '@/hooks/useAdminData';
+import { Loader2, LogOut } from 'lucide-react';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import AdminDashboardClient from '@/components/admin/AdminDashboardClient';
-import { Loader2 } from 'lucide-react';
+import CarbonTracker from '@/components/admin/CarbonTracker';
 
 export default function AdminDashboard() {
+    const { user, loading, stats } = useAdminData();
     const router = useRouter();
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ total: 0, resolved: 0, pending: 0, critical: 0 });
-    const [faults, setFaults] = useState<any[]>([]);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (!currentUser) {
-                router.push('/login');
-            } else {
-                setUser(currentUser);
-                // Fetch stats and faults
-                try {
-                    const q = query(collection(db, 'FaultReports'), orderBy('timestamp', 'desc'));
-                    const snapshot = await getDocs(q);
-                    const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-                    setFaults(reports);
-                    
-                    setStats({
-                        total: reports.length,
-                        resolved: reports.filter(r => r.status === 'Resolved' || r.status === 'Dispatched').length,
-                        pending: reports.filter(r => r.status === 'Pending').length,
-                        critical: reports.filter(r => r.urgencyScore >= 8).length,
-                    });
-                } catch (err) {
-                    console.error("Error fetching stats:", err);
-                }
-                setLoading(false);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [router]);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
     if (!user) return null;
 
-    return <AdminDashboardClient email={user.email || 'Admin'} stats={stats} faults={faults} />;
-}
+    return (
+        <div className="space-y-6">
+            <header className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-border mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">Government Dashboard</h1>
+                    <p className="text-sm text-muted-foreground">Admin logged in as {user.email}</p>
+                </div>
+                <button onClick={async () => { await signOut(auth); router.push('/login'); }} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors font-medium">
+                    <LogOut size={18} /> Sign Out
+                </button>
+            </header>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <CarbonTracker stats={stats} />
+                </div>
+                <div>
+                    <div className="bg-[#2E7D32] text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+                        <div className="relative z-10">
+                            <h3 className="font-bold text-lg mb-2 text-[#FFD700]">Report Priority</h3>
+                            <p className="text-sm opacity-90 mb-4">Critical failures detected in Osogbo East.</p>
+                            <button className="bg-white text-[#2E7D32] px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-neutral-100 transition-colors">
+                                View Full Report
+                            </button>
+                        </div>
+                        {/* Decorative circles */}
+                        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full"></div>
+                        <div className="absolute top-10 -right-5 w-16 h-16 bg-white/5 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
