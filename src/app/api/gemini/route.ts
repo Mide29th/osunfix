@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
 const SYSTEM_CONTEXT = `You are Imole AI, a friendly and knowledgeable civic assistant for OsunFix — 
 a public accountability platform for Osun State, Nigeria. Your role is to:
@@ -16,21 +16,31 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { mode, message, context } = body;
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
       return NextResponse.json({ error: 'Gemini API key not configured.' }, { status: 500 });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      systemInstruction: SYSTEM_CONTEXT
+    });
 
     // ── Mode: Citizen Chat (Imole AI) ─────────────────────────
     if (mode === 'chat') {
+      let safeHistory = Array.isArray(context?.history) ? [...context.history] : [];
+      
+      // Gemini STRICTLY requires the first message in history to be from 'user'.
+      // If the UI sends an initial greeting from 'model', we must strip it.
+      while (safeHistory.length > 0 && safeHistory[0].role !== 'user') {
+        safeHistory.shift();
+      }
+
       const chat = model.startChat({
-        history: context?.history || [],
-        generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
+        history: safeHistory,
+        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
       });
-      const result = await chat.sendMessage(
-        `${SYSTEM_CONTEXT}\n\nCitizen question: ${message}`
-      );
+      
+      const result = await chat.sendMessage(`Citizen question: ${message}`);
       return NextResponse.json({ reply: result.response.text() });
     }
 
