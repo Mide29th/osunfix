@@ -2,19 +2,26 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Map as MapIcon, Users, BarChart3, Settings, LogOut } from 'lucide-react';
-import { logout } from '@/app/auth/actions';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/map', label: 'Fault Map', icon: MapIcon },
-    { href: '/admin/routing', label: 'Artisan Routing', icon: Users },
-    { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
+    { href: '/admin#map', label: 'Fault Map', icon: MapIcon },
+    { href: '/admin#routing', label: 'Artisan Routing', icon: Users },
+    { href: '/admin#reports', label: 'Reports', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await signOut(auth);
+        router.push('/login');
+    };
 
     return (
         <aside className="w-64 bg-[#2E7D32] text-white flex flex-col shadow-xl z-20">
@@ -54,7 +61,7 @@ export default function Sidebar() {
 
             <div className="p-4 border-t border-[#1B5E20] space-y-2">
                 <Link
-                    href="/admin/settings"
+                    href="/admin#reports"
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname === '/admin/settings' ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
                         }`}
                 >
@@ -62,7 +69,7 @@ export default function Sidebar() {
                     <span>Settings</span>
                 </Link>
                 <button
-                    onClick={() => logout()}
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/80 hover:bg-red-500/20 hover:text-white transition-colors text-left"
                 >
                     <LogOut size={20} />

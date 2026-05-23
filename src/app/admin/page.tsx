@@ -1,46 +1,59 @@
-import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
-import { logout } from '@/app/auth/actions';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, db } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import AdminDashboardClient from '@/components/admin/AdminDashboardClient';
+import { Loader2 } from 'lucide-react';
 
-export default async function AdminDashboard() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export default function AdminDashboard() {
+    const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ total: 0, resolved: 0, pending: 0, critical: 0 });
+    const [faults, setFaults] = useState<any[]>([]);
 
-    if (!user) {
-        redirect('/login');
-    }
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (!currentUser) {
+                router.push('/login');
+            } else {
+                setUser(currentUser);
+                // Fetch stats and faults
+                try {
+                    const q = query(collection(db, 'FaultReports'), orderBy('timestamp', 'desc'));
+                    const snapshot = await getDocs(q);
+                    const reports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+                    setFaults(reports);
+                    
+                    setStats({
+                        total: reports.length,
+                        resolved: reports.filter(r => r.status === 'Resolved' || r.status === 'Dispatched').length,
+                        pending: reports.filter(r => r.status === 'Pending').length,
+                        critical: reports.filter(r => r.urgencyScore >= 8).length,
+                    });
+                } catch (err) {
+                    console.error("Error fetching stats:", err);
+                }
+                setLoading(false);
+            }
+        });
 
-    // Check if user is an admin
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+        return () => unsubscribe();
+    }, [router]);
 
-    if (profile?.role !== 'admin') {
+    if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-                <p className="text-muted-foreground mb-6">You do not have administrative privileges.</p>
-                <form action={logout}>
-                    <button type="submit" className="bg-[#2E7D32] text-white px-6 py-2 rounded-lg font-bold">
-                        Sign Out
-                    </button>
-                </form>
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
 
-    // Fetch aggregated stats
-    const { data: reports } = await supabase.from('FaultReports').select('status');
+    if (!user) return null;
 
-    const stats = {
-        total: reports?.length || 0,
-        resolved: reports?.filter(r => r.status === 'Resolved').length || 0,
-        pending: reports?.filter(r => r.status === 'Pending').length || 0,
-        critical: reports?.filter(r => r.status === 'Critical').length || 0,
-    };
-
-    return <AdminDashboardClient email={user.email || ''} stats={stats} />;
+    return <AdminDashboardClient email={user.email || 'Admin'} stats={stats} faults={faults} />;
 }
+

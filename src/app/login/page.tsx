@@ -1,16 +1,42 @@
 'use client'
 
-import { login, signup } from '@/app/auth/actions'
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, Suspense } from 'react'
 import { AlertCircle, Lock, Mail } from 'lucide-react'
+import { auth } from '@/lib/firebase'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 
 function LoginForm() {
+    const router = useRouter()
     const searchParams = useSearchParams()
-    const error = searchParams.get('error')
+    const urlError = searchParams.get('error')
+    const [error, setError] = useState<string | null>(urlError)
     const [loading, setLoading] = useState(false)
     const [isSignUp, setIsSignUp] = useState(false)
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        const formData = new FormData(e.currentTarget);
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+
+        try {
+            if (isSignUp) {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } else {
+                await signInWithEmailAndPassword(auth, email, password);
+            }
+            router.push('/admin'); // Redirect to admin on success
+        } catch (err: any) {
+            console.error('Auth error:', err);
+            setError(err.message || 'Authentication failed');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F9F9F5] p-4 font-sans">
@@ -37,15 +63,7 @@ function LoginForm() {
                     </div>
                 )}
 
-                <form action={async (formData) => {
-                    setLoading(true)
-                    if (isSignUp) {
-                        await signup(formData)
-                    } else {
-                        await login(formData)
-                    }
-                    setLoading(false)
-                }} className="mt-8 space-y-6">
+                <form onSubmit={handleSubmit} className="mt-8 space-y-6">
                     <div className="space-y-4">
                         <div className="relative">
                             <label htmlFor="email" className="sr-only">Email address</label>
@@ -87,12 +105,6 @@ function LoginForm() {
                 </form>
 
                 <div className="text-center space-y-4">
-                    <button
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-xs text-[#2E7D32] hover:underline font-medium"
-                    >
-                        {isSignUp ? 'Already have an account? Sign In' : 'Need an official account? Sign Up'}
-                    </button>
                     <p className="text-[10px] text-muted-foreground">
                         Authorized Personnel Only. Unauthorized access is strictly prohibited.
                     </p>

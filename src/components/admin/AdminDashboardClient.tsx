@@ -3,7 +3,9 @@
 import dynamic from 'next/dynamic';
 import CarbonTracker from '@/components/admin/CarbonTracker';
 import ArtisanRouting from '@/components/admin/ArtisanRouting';
-import { logout } from '@/app/auth/actions';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
 
 // Dynamically import map to avoid window object issues during SSR
@@ -20,9 +22,17 @@ interface AdminDashboardClientProps {
         pending: number;
         critical: number;
     };
+    faults: any[];
 }
 
-export default function AdminDashboardClient({ email, stats }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ email, stats, faults }: AdminDashboardClientProps) {
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await signOut(auth);
+        router.push('/login');
+    };
+
     return (
         <div className="space-y-6">
             <header className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-border mb-6">
@@ -30,36 +40,34 @@ export default function AdminDashboardClient({ email, stats }: AdminDashboardCli
                     <h1 className="text-2xl font-bold text-foreground">Government Dashboard</h1>
                     <p className="text-sm text-muted-foreground">Admin logged in as {email}</p>
                 </div>
-                <form action={logout}>
-                    <button type="submit" className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors font-medium">
-                        <LogOut size={18} />
-                        Sign Out
-                    </button>
-                </form>
+                <button onClick={handleLogout} className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors font-medium">
+                    <LogOut size={18} />
+                    Sign Out
+                </button>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Map Area - Takes up 2 columns */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-lg border border-border">
+                    <div id="map" className="bg-white p-6 rounded-xl shadow-lg border border-border">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="font-bold text-xl text-foreground">Live Fault Tracker</h2>
                             <span className="text-xs font-bold bg-green-50 text-green-700 px-2 py-1 rounded border border-green-100 uppercase tracking-tighter">Real-time Data Active</span>
                         </div>
                         <div className="h-[400px]">
-                            <FaultMap />
+                            <FaultMap faults={faults} />
                         </div>
                     </div>
 
                     {/* Artisan Routing below Map */}
-                    <div className="h-[400px]">
-                        <ArtisanRouting />
+                    <div id="routing" className="h-[400px]">
+                        <ArtisanRouting faults={faults} />
                     </div>
                 </div>
 
                 {/* Sidebar Widgets - Takes up 1 column */}
                 <div className="space-y-6">
-                    <div className="h-[400px]">
+                    <div id="reports" className="h-[400px]">
                         <CarbonTracker stats={stats} />
                     </div>
 
@@ -81,3 +89,4 @@ export default function AdminDashboardClient({ email, stats }: AdminDashboardCli
         </div>
     );
 }
+

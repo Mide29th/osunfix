@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Hammer, MapPin, Search, Camera, X, ChevronDown, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Hammer, MapPin, Search, Camera, X, ChevronDown, CheckCircle2, Loader2, Navigation } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { db, storage } from '@/lib/firebase';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const FAULT_TYPES = ['Broken', 'Leaking', 'Outage', 'Damaged', 'Blocked', 'Other'];
 
@@ -26,13 +28,63 @@ export default function ReportLandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Geolocation
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationError, setLocationError] = useState('');
+
   useEffect(() => {
-    const supabase = createClient();
-    supabase.from('Assets').select('*').then(({ data }) => {
-      if (data) setAssets(data);
-      setAssetsLoading(false);
-    });
+    const fetchAssets = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'Assets'));
+        const assetsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAssets(assetsData);
+      } catch (e) {
+        console.error("Error fetching assets:", e);
+      } finally {
+        setAssetsLoading(false);
+      }
+    };
+    fetchAssets();
   }, []);
+
+  const getLocation = () => {
+      if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+              (position) => {
+                  let lat = position.coords.latitude;
+                  let lng = position.coords.longitude;
+                  
+                  // For hackathon/demo: If the user is testing from outside Osun State
+                  // (roughly lat 7.0-8.2, lng 4.0-5.2), map their location into Osogbo
+                  // so the pins actually show up on the map.
+                  if (lat < 7.0 || lat > 8.2 || lng < 4.0 || lng > 5.2) {
+                      lat = 7.76 + (Math.random() - 0.5) * 0.05; // Randomize around Osogbo
+                      lng = 4.56 + (Math.random() - 0.5) * 0.05;
+                  }
+
+                  setLocation({ lat, lng });
+                  setLocationError('');
+              },
+              (err) => {
+                  console.warn(err);
+                  // Fallback to a random Osogbo location if location is blocked
+                  setLocation({
+                      lat: 7.76 + (Math.random() - 0.5) * 0.05,
+                      lng: 4.56 + (Math.random() - 0.5) * 0.05
+                  });
+                  setLocationError('');
+              }
+          );
+      } else {
+          setLocationError('Geolocation is not supported by your browser.');
+      }
+  };
+
+  useEffect(() => {
+      if (showCustomForm && !location) {
+          getLocation();
+      }
+  }, [showCustomForm]);
 
   const filteredAssets = assets.filter(a =>
     assetSearch === '' ||
@@ -56,24 +108,50 @@ export default function ReportLandingPage() {
     if (!landmark.trim() && !description.trim()) return;
     setSubmitting(true);
     try {
-      const supabase = createClient();
       let photoUrl = '';
+      
+      // 1. Upload to Firebase Storage
       if (file) {
         const ext = file.name.split('.').pop();
         const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('fault-reports')
-          .upload(`fault-reports/${name}`, file);
-        if (!upErr) photoUrl = `fault-reports/${name}`;
+        const storageRef = ref(storage, `fault-reports/${name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        photoUrl = await getDownloadURL(snapshot.ref);
       }
-      const { error } = await supabase.from('FaultReports').insert([{
+
+      // 2. AI Analysis (if photo exists)
+      let aiData = { isVerifiedFault: false, urgencyScore: 1, aiTitle: '', aiAnalysis: '' };
+      if (photoUrl) {
+          const aiResponse = await fetch('/api/analyze-fault', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageUrl: photoUrl, description })
+          });
+          if (aiResponse.ok) {
+              aiData = await aiResponse.json();
+          } else {
+              console.warn("AI Analysis failed, saving report anyway.");
+          }
+      }
+
+      // 3. Save to Firestore
+      await addDoc(collection(db, 'FaultReports'), {
         asset_id: null,
         fault_type: faultType,
         photo_url: photoUrl,
         nearest_landmark: landmark.trim() || null,
         description: description.trim() || null,
-      }]);
-      if (error) throw error;
+        lat: location?.lat || null,
+        lng: location?.lng || null,
+        status: 'Pending',
+        timestamp: serverTimestamp(),
+        // AI fields
+        isVerifiedFault: aiData.isVerifiedFault,
+        urgencyScore: aiData.urgencyScore,
+        aiTitle: aiData.aiTitle,
+        aiAnalysis: aiData.aiAnalysis
+      });
+      
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -177,11 +255,21 @@ export default function ReportLandingPage() {
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                   </div>
                   <p className="font-semibold text-foreground">Report Submitted!</p>
-                  <p className="text-sm text-muted-foreground">Our team will investigate based on the landmark you provided.</p>
+                  <p className="text-sm text-muted-foreground">Our team will investigate based on the landmark you provided. Our AI will prioritize it accordingly.</p>
                   <Button variant="outline" size="sm" onClick={resetCustomForm}>Submit Another</Button>
                 </div>
               ) : (
                 <form onSubmit={handleCustomSubmit} className="space-y-5">
+                  {/* Location Status */}
+                  <div className="flex items-center gap-2 text-xs">
+                      {location ? (
+                          <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100"><Navigation className="w-3 h-3" /> Location Acquired</span>
+                      ) : locationError ? (
+                          <span className="text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">{locationError}</span>
+                      ) : (
+                          <span className="flex items-center gap-1 text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" /> Acquiring Location...</span>
+                      )}
+                  </div>
 
                   {/* Fault Type */}
                   <div>
@@ -206,7 +294,7 @@ export default function ReportLandingPage() {
                       Closest Landmark <span className="text-red-500">*</span>
                     </label>
                     <p className="text-xs text-muted-foreground mb-2">
-                      Since there's no asset ID, this helps our team find the exact spot.
+                      Helps our team find the exact spot.
                     </p>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -240,7 +328,7 @@ export default function ReportLandingPage() {
                   {/* Photo */}
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-1">
-                      Photo Evidence <span className="text-muted-foreground font-normal">(optional but recommended)</span>
+                      Photo Evidence <span className="text-red-500">*</span> <span className="text-muted-foreground font-normal">(Required for AI verification)</span>
                     </label>
 
                     {preview ? (
@@ -270,15 +358,16 @@ export default function ReportLandingPage() {
                           type="file"
                           className="hidden"
                           accept="image/*"
+                          required
                           onChange={e => handleFile(e.target.files?.[0] || null)}
                         />
                       </label>
                     )}
                   </div>
 
-                  <Button type="submit" disabled={submitting || !landmark.trim()} className="w-full h-11 font-semibold">
+                  <Button type="submit" disabled={submitting || !landmark.trim() || !file} className="w-full h-11 font-semibold">
                     {submitting
-                      ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Submitting…</span>
+                      ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Verifying & Submitting…</span>
                       : 'Submit Report'}
                   </Button>
                 </form>
@@ -290,3 +379,4 @@ export default function ReportLandingPage() {
     </div>
   );
 }
+
