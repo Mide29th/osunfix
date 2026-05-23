@@ -9,12 +9,12 @@ import { signOut } from 'firebase/auth';
 
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin#map', label: 'Fault Map', icon: MapIcon },
-    { href: '/admin#routing', label: 'Artisan Routing', icon: Users },
-    { href: '/admin#reports', label: 'Reports', icon: BarChart3 },
+    { href: '/admin/map', label: 'Fault Map', icon: MapIcon },
+    { href: '/admin/routing', label: 'Artisan Routing', icon: Users },
+    { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
     const pathname = usePathname();
     const router = useRouter();
 
@@ -24,7 +24,7 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="w-64 bg-[#2E7D32] text-white flex flex-col shadow-xl z-20">
+        <aside className="w-64 bg-[#2E7D32] text-white flex flex-col shadow-xl z-20 h-full overflow-hidden">
             <div className="p-6 flex items-center gap-3 border-b border-[#1B5E20]">
                 <div className="relative w-12 h-12 shrink-0">
                     <Image
@@ -47,6 +47,7 @@ export default function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
+                            onClick={onClose}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
                                 ? 'bg-white/20 text-white font-bold shadow-sm'
                                 : 'text-white/80 hover:bg-white/10 hover:text-white'
@@ -61,7 +62,8 @@ export default function Sidebar() {
 
             <div className="p-4 border-t border-[#1B5E20] space-y-2">
                 <Link
-                    href="/admin#reports"
+                    href="/admin/settings"
+                    onClick={onClose}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname === '/admin/settings' ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
                         }`}
                 >
